@@ -46,17 +46,17 @@ void Fill(AlignedArray* out, scalar_t val) {
 }
 
 
-void make_compact(const AlignedArray& a, AlignedArray* out, std::vector<uint32_t> shape,
-             std::vector<uint32_t> strides, size_t offset, std::vector<uint32_t> inds, uint32_t& out_idx) {
+void make_compact(const AlignedArray& a, AlignedArray* out, std::vector<int32_t> shape,
+             std::vector<int32_t> strides, size_t offset, std::vector<int32_t> inds, int32_t& out_idx) {
   if (inds.size() == shape.size()) {
-    uint32_t idx = offset;
+    int32_t idx = offset;
     for (std::size_t i = 0; i < inds.size(); ++i) {
         idx += inds[i] * strides[i];
     }
     out->ptr[out_idx++] = a.ptr[idx];
   } else {
-    uint32_t s = shape[inds.size()];
-    for (uint32_t i = 0; i < s; i++) {
+    int32_t s = shape[inds.size()];
+    for (int32_t i = 0; i < s; i++) {
         inds.push_back(i);
         make_compact(a, out, shape, strides, offset, inds, out_idx);
         inds.pop_back();
@@ -65,8 +65,8 @@ void make_compact(const AlignedArray& a, AlignedArray* out, std::vector<uint32_t
 }
 
 // a is con-compact, out is new array that should be compact
-void Compact(const AlignedArray& a, AlignedArray* out, std::vector<uint32_t> shape,
-             std::vector<uint32_t> strides, size_t offset) {
+void Compact(const AlignedArray& a, AlignedArray* out, std::vector<int32_t> shape,
+             std::vector<int32_t> strides, size_t offset) {
   /**
    * Compact an array in memory
    *
@@ -85,23 +85,24 @@ void Compact(const AlignedArray& a, AlignedArray* out, std::vector<uint32_t> sha
   size_t m = shape.size();
   size_t n = strides.size();
   assert(m == n);
-  uint32_t out_idx = 0;
-  std::vector<uint32_t> shape_inds;
+  int32_t out_idx = 0;
+  std::vector<int32_t> shape_inds;
   make_compact(a, out, shape, strides, offset, shape_inds, out_idx);
   /// END YOUR SOLUTION
 }
 
-void ewise_set_item(const AlignedArray& a, AlignedArray* out, std::vector<uint32_t> shape,
-             std::vector<uint32_t> strides, size_t offset, std::vector<uint32_t> inds, uint32_t& a_idx) {
+
+void ewise_set_item(const AlignedArray& a, AlignedArray* out, std::vector<int32_t> shape,
+             std::vector<int32_t> strides, size_t offset, std::vector<int32_t> inds, int32_t& a_idx) {
   if (inds.size() == shape.size()) {
-    uint32_t idx = offset;
+    int32_t idx = offset;
     for (std::size_t i = 0; i < inds.size(); ++i) {
         idx += inds[i] * strides[i];
     }
     out->ptr[idx] = a.ptr[a_idx++];
   } else {
-    uint32_t s = shape[inds.size()];
-    for (uint32_t i = 0; i < s; i++) {
+    int32_t s = shape[inds.size()];
+    for (int32_t i = 0; i < s; i++) {
         inds.push_back(i);
         ewise_set_item(a, out, shape, strides, offset, inds, a_idx);
         inds.pop_back();
@@ -110,8 +111,8 @@ void ewise_set_item(const AlignedArray& a, AlignedArray* out, std::vector<uint32
 }
 
 // out[:,2:4] = a
-void EwiseSetitem(const AlignedArray& a, AlignedArray* out, std::vector<uint32_t> shape,
-                  std::vector<uint32_t> strides, size_t offset) {
+void EwiseSetitem(const AlignedArray& a, AlignedArray* out, std::vector<int32_t> shape,
+                  std::vector<int32_t> strides, size_t offset) {
   /**
    * Set items in a (non-compact) array
    *
@@ -126,23 +127,23 @@ void EwiseSetitem(const AlignedArray& a, AlignedArray* out, std::vector<uint32_t
   size_t m = shape.size();
   size_t n = strides.size();
   assert(m == n);
-  uint32_t a_idx = 0;
-  std::vector<uint32_t> shape_inds;
+  int32_t a_idx = 0;
+  std::vector<int32_t> shape_inds;
   ewise_set_item(a, out, shape, strides, offset, shape_inds, a_idx);
   /// END YOUR SOLUTION
 }
 
-void scalar_set_item(const size_t size, scalar_t val, AlignedArray* out, std::vector<uint32_t> shape,
-                   std::vector<uint32_t> strides, size_t offset, std::vector<uint32_t> inds) {
+void scalar_set_item(const size_t size, scalar_t val, AlignedArray* out, std::vector<int32_t> shape,
+                   std::vector<int32_t> strides, size_t offset, std::vector<int32_t> inds) {
   if (inds.size() == shape.size()) {
-    uint32_t idx = offset;
+    int32_t idx = offset;
     for (std::size_t i = 0; i < inds.size(); ++i) {
         idx += inds[i] * strides[i];
     }
     out->ptr[idx] = val;
     //out_idx++;
   } else {
-    uint32_t s = shape[inds.size()];
+    int32_t s = shape[inds.size()];
     for (int i = 0; i < s; i++) {
         inds.push_back(i);
         scalar_set_item(size, val, out, shape, strides, offset, inds);
@@ -151,8 +152,8 @@ void scalar_set_item(const size_t size, scalar_t val, AlignedArray* out, std::ve
   }
 }
 
-void ScalarSetitem(const size_t size, scalar_t val, AlignedArray* out, std::vector<uint32_t> shape,
-                   std::vector<uint32_t> strides, size_t offset) {
+void ScalarSetitem(const size_t size, scalar_t val, AlignedArray* out, std::vector<int32_t> shape,
+                   std::vector<int32_t> strides, size_t offset) {
   /**
    * Set items is a (non-compact) array
    *
@@ -171,7 +172,7 @@ void ScalarSetitem(const size_t size, scalar_t val, AlignedArray* out, std::vect
   size_t m = shape.size();
   size_t n = strides.size();
   assert(m == n);
-  std::vector<uint32_t> shape_inds;
+  std::vector<int32_t> shape_inds;
   scalar_set_item(size, val, out, shape, strides, offset, shape_inds);
   /// END YOUR SOLUTION
 }
@@ -318,8 +319,8 @@ void EwiseTanh(const AlignedArray& a, AlignedArray* out) {
 
 /// END YOUR SOLUTION
 
-void Matmul(const AlignedArray& a, const AlignedArray& b, AlignedArray* out, uint32_t m, uint32_t n,
-            uint32_t p) {
+void Matmul(const AlignedArray& a, const AlignedArray& b, AlignedArray* out, int32_t m, int32_t n,
+            int32_t p) {
   /**
    * Multiply two (compact) matrices into an output (also compact) matrix.  For this implementation
    * you can use the "naive" three-loop algorithm.
@@ -334,10 +335,10 @@ void Matmul(const AlignedArray& a, const AlignedArray& b, AlignedArray* out, uin
    */
 
   /// BEGIN YOUR SOLUTION
-  for (uint32_t i = 0; i < m; i++) {
-    for (uint32_t j = 0; j < p; j++) {
+  for (int32_t i = 0; i < m; i++) {
+    for (int32_t j = 0; j < p; j++) {
         scalar_t s = 0;
-        for (uint32_t k = 0; k < n; k++) {
+        for (int32_t k = 0; k < n; k++) {
             s += a.ptr[i * n + k] * b.ptr[k * p + j];
         }
         out->ptr[i * p + j] = s;
@@ -385,8 +386,8 @@ inline void AlignedDot(const float* __restrict__ a,
   /// END YOUR SOLUTION
 }
 
-void MatmulTiled(const AlignedArray& a, const AlignedArray& b, AlignedArray* out, uint32_t m,
-                 uint32_t n, uint32_t p) {
+void MatmulTiled(const AlignedArray& a, const AlignedArray& b, AlignedArray* out, int32_t m,
+                 int32_t n, int32_t p) {
   /**
    * Matrix multiplication on tiled representations of array.  In this setting, a, b, and out
    * are all *4D* compact arrays of the appropriate size, e.g. a is an array of size
@@ -452,7 +453,7 @@ void ReduceMax(const AlignedArray& a, AlignedArray* out, size_t reduce_size) {
 
   /// BEGIN YOUR SOLUTION
   scalar_t s = -std::numeric_limits<float>::infinity();
-  uint32_t c = 0;
+  int32_t c = 0;
   for (size_t i = 0; i < a.size; i++) {
     s = std::max(s, a.ptr[i]);
     c += 1;
@@ -476,7 +477,7 @@ void ReduceSum(const AlignedArray& a, AlignedArray* out, size_t reduce_size) {
 
   /// BEGIN YOUR SOLUTION
   scalar_t s = 0;
-  uint32_t c = 0;
+  int32_t c = 0;
   for (size_t i = 0; i < a.size; i++) {
     s += a.ptr[i];
     c += 1;
