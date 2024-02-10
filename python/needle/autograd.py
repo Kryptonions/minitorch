@@ -1,9 +1,11 @@
-
 """Core data structures."""
 import needle
+#from .backend_numpy import Device, cpu, all_devices
 from typing import List, Optional, NamedTuple, Tuple, Union
 from collections import namedtuple
 import numpy
+
+from needle import init
 
 # needle version
 LAZY_MODE = False
@@ -11,36 +13,12 @@ TENSOR_COUNTER = 0
 
 # NOTE: we will import numpy as the array_api
 # as the backend for our computations, this line will change in later homeworks
-import numpy as array_api
-NDArray = numpy.ndarray
 
+#import numpy as array_api
+#NDArray = numpy.ndarray
 
-class Device:
-    """Indicates the device supporting an NDArray."""
-
-
-class CPUDevice(Device):
-    """Represents data that sits in CPU"""
-
-    def __repr__(self):
-        return "needle.cpu()"
-
-    def __hash__(self):
-        return self.__repr__().__hash__()
-
-    def __eq__(self, other):
-        return isinstance(other, CPUDevice)
-
-    def enabled(self):
-        return True
-
-def cpu():
-    """Return cpu device"""
-    return CPUDevice()
-
-def all_devices():
-    """return a list of all available devices"""
-    return [cpu()]
+#from .backend_selection import array_api, NDArray, default_device
+from .backend_selection import *
 
 
 class Op:
@@ -87,7 +65,7 @@ class Op:
         raise NotImplementedError()
 
     def gradient_as_tuple(self, out_grad: "Value", node: "Value") -> Tuple["Value"]:
-        """ Convenience method to always return a tuple from gradient call"""
+        """Convenience method to always return a tuple from gradient call"""
         output = self.gradient(out_grad, node)
         if isinstance(output, tuple):
             return output
@@ -98,7 +76,7 @@ class Op:
 
 
 class TensorOp(Op):
-    """ Op class specialized to output tensors, will be alternate subclasses for other structures """
+    """Op class specialized to output tensors, will be alternate subclasses for other structures"""
 
     def __call__(self, *args):
         return Tensor.make_from_op(self, args)
@@ -212,7 +190,7 @@ class TensorTuple(Value):
 
     def detach(self):
         """Create a new tensor that shares the data but detaches from the graph."""
-        return Tuple.make_const(self.realize_cached_data())
+        return TensorTuple.make_const(self.realize_cached_data())
 
 
 class Tensor(Value):
@@ -240,7 +218,7 @@ class Tensor(Value):
                     array.numpy(), device=device, dtype=dtype
                 )
         else:
-            device = device if device else cpu()
+            device = device if device else default_device()
             cached_data = Tensor._array_from_numpy(array, device=device, dtype=dtype)
 
         self._init(
@@ -253,7 +231,7 @@ class Tensor(Value):
     @staticmethod
     def _array_from_numpy(numpy_array, device, dtype):
         if array_api is numpy:
-            return numpy.array(numpy_array.numpy(), dtype=dtype)
+            return numpy.array(numpy_array, dtype=dtype)
         return array_api.array(numpy_array, device=device, dtype=dtype)
 
     @staticmethod
@@ -261,6 +239,8 @@ class Tensor(Value):
         tensor = Tensor.__new__(Tensor)
         tensor._init(op, inputs)
         if not LAZY_MODE:
+            if not tensor.requires_grad:
+                return tensor.detach()
             tensor.realize_cached_data()
         return tensor
 
@@ -311,7 +291,11 @@ class Tensor(Value):
         return data.device
 
     def backward(self, out_grad=None):
-        out_grad = out_grad if out_grad else Tensor(numpy.ones(self.shape))
+        out_grad = (
+            out_grad
+            if out_grad
+            else init.ones(*self.shape, dtype=self.dtype, device=self.device)
+        )
         compute_gradient_of_variables(self, out_grad)
 
     def __repr__(self):
@@ -340,7 +324,7 @@ class Tensor(Value):
 
     def __pow__(self, other):
         if isinstance(other, Tensor):
-            raise NotImplementedError()
+            return needle.ops.EWisePow()(self, other)
         else:
             return needle.ops.PowerScalar(other)(self)
 
@@ -398,7 +382,6 @@ def compute_gradient_of_variables(output_tensor, out_grad):
     # Traverse graph in reverse topological order given the output_node that we are taking gradient wrt.
     reverse_topo_order = list(reversed(find_topo_sort([output_tensor])))
 
-    ### BEGIN YOUR SOLUTION
     for node in reverse_topo_order:
         v = sum_node_list(node_to_output_grads_list[node])
         # important
@@ -413,8 +396,6 @@ def compute_gradient_of_variables(output_tensor, out_grad):
             for i, node1 in enumerate(node.inputs):
                 node_to_output_grads_list[node1].append(gradient[i])
 
-    ### END YOUR SOLUTION
-
 
 def find_topo_sort(node_list: List[Value]) -> List[Value]:
     """Given a list of nodes, return a topological sort list of nodes ending in them.
@@ -424,23 +405,19 @@ def find_topo_sort(node_list: List[Value]) -> List[Value]:
     after all its predecessors are traversed due to post-order DFS, we get a topological
     sort.
     """
-    ### BEGIN YOUR SOLUTION
     topo_order = []
     visited = set()
     topo_sort_dfs(node_list[0], visited, topo_order)
     return topo_order
-    ### END YOUR SOLUTION
 
 
 def topo_sort_dfs(node, visited, topo_order):
     """Post-order DFS"""
-    ### BEGIN YOUR SOLUTION
     for input in node.inputs:
         topo_sort_dfs(input, visited, topo_order)
     if node not in visited:
         visited.add(node)
         topo_order.append(node)
-    ### END YOUR SOLUTION
 
 
 ##############################

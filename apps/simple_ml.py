@@ -1,11 +1,17 @@
+"""hw1/apps/simple_ml.py"""
+
 import struct
 import gzip
 import numpy as np
-
 import sys
 
-sys.path.append('python/')
+sys.path.append("../python/")
 import needle as ndl
+
+import needle.nn as nn
+from apps.models import *
+import time
+device = ndl.cpu()
 
 
 def parse_mnist(image_filename, label_filename):
@@ -30,7 +36,6 @@ def parse_mnist(image_filename, label_filename):
                 labels of the examples.  Values should be of type np.int8 and
                 for MNIST will contain the values 0-9.
     """
-    ### BEGIN YOUR CODE
     import gzip
     with gzip.open(image_filename, 'r') as f:
         # first 4 bytes is a magic number
@@ -62,7 +67,6 @@ def parse_mnist(image_filename, label_filename):
         labels = np.frombuffer(label_data, dtype=np.uint8)
 
     return images, labels
-    ### END YOUR CODE
 
 
 def softmax_loss(Z, y_one_hot):
@@ -81,11 +85,9 @@ def softmax_loss(Z, y_one_hot):
     Returns:
         Average softmax loss over the sample. (ndl.Tensor[np.float32])
     """
-    ### BEGIN YOUR SOLUTION
     batch_size = Z.shape[0]
     loss = ndl.log(ndl.summation(ndl.exp(Z), axes=(1,))) - ndl.summation(ndl.multiply(Z, y_one_hot), axes=(1,))
     return ndl.summation(loss) / batch_size
-    ### END YOUR SOLUTION
 
 
 def nn_epoch(X, y, W1, W2, lr=0.1, batch=100):
@@ -112,7 +114,6 @@ def nn_epoch(X, y, W1, W2, lr=0.1, batch=100):
             W2: ndl.Tensor[np.float32]
     """
 
-    ### BEGIN YOUR SOLUTION
     n = X.shape[0]
     step = n // batch
     # index = np.arange(batch)
@@ -135,14 +136,185 @@ def nn_epoch(X, y, W1, W2, lr=0.1, batch=100):
 
     return W1, W2
 
-    ### END YOUR SOLUTION
+
+### CIFAR-10 training ###
+def epoch_general_cifar10(dataloader, model, loss_fn=nn.SoftmaxLoss(), opt=None):
+    """
+    Iterates over the dataloader. If optimizer is not None, sets the
+    model to train mode, and for each batch updates the model parameters.
+    If optimizer is None, sets the model to eval mode, and simply computes
+    the loss/accuracy.
+
+    Args:
+        dataloader: Dataloader instance
+        model: nn.Module instance
+        loss_fn: nn.Module instance
+        opt: Optimizer instance (optional)
+
+    Returns:
+        avg_acc: average accuracy over dataset
+        avg_loss: average loss over dataset
+    """
+    np.random.seed(4)
+    correct, total_loss = 0, 0
+
+    if opt is None:
+        model.eval()
+        for batch in dataloader:
+            X, y = batch
+            X, y = ndl.Tensor(X, device=device), ndl.Tensor(y, device=device)
+            out = model(X)
+            loss = loss_fn(out, y)
+            correct += np.sum(np.argmax(out.numpy(), axis=1) == y.numpy())
+            total_loss += loss.data.numpy() * y.shape[0]
+    else:
+        model.train()
+        for batch in dataloader:
+            opt.reset_grad()
+            X, y = batch
+            X, y = ndl.Tensor(X, device=device), ndl.Tensor(y, device=device)
+            out = model(X)
+            loss = loss_fn(out, y)
+            loss.backward()
+            opt.step()
+            correct += np.sum(np.argmax(out.numpy(), axis=1) == y.numpy())
+            total_loss += loss.data.numpy() * y.shape[0]
+            print("loss:{}".format(loss.data.numpy()))
 
 
-### CODE BELOW IS FOR ILLUSTRATION, YOU DO NOT NEED TO EDIT
+
+    sample_nums = len(dataloader.dataset)
+    return correct / sample_nums, total_loss / sample_nums
+
+
+def train_cifar10(model, dataloader, n_epochs=1, optimizer=ndl.optim.Adam,
+                  lr=0.001, weight_decay=0.001, loss_fn=nn.SoftmaxLoss()):
+    """
+    Performs {n_epochs} epochs of training.
+
+    Args:
+        dataloader: Dataloader instance
+        model: nn.Module instance
+        n_epochs: number of epochs (int)
+        optimizer: Optimizer class
+        lr: learning rate (float)
+        weight_decay: weight decay (float)
+        loss_fn: nn.Module class
+
+    Returns:
+        avg_acc: average accuracy over dataset from last epoch of training
+        avg_loss: average loss over dataset from last epoch of training
+    """
+    np.random.seed(4)
+    opt = optimizer(model.parameters(), lr=lr, weight_decay=weight_decay)
+    for epoch in range(n_epochs):
+        avg_acc, avg_loss = epoch_general_cifar10(dataloader, model, loss_fn=loss_fn, opt=opt)
+        print(f"Epoch: {epoch}, Acc: {avg_acc}, Loss: {avg_loss}")
+
+
+def evaluate_cifar10(model, dataloader, loss_fn=nn.SoftmaxLoss):
+    """
+    Computes the test accuracy and loss of the model.
+
+    Args:
+        dataloader: Dataloader instance
+        model: nn.Module instance
+        loss_fn: nn.Module class
+
+    Returns:
+        avg_acc: average accuracy over dataset
+        avg_loss: average loss over dataset
+    """
+    np.random.seed(4)
+    avg_acc, avg_loss = epoch_general_cifar10(dataloader, model, loss_fn=loss_fn)
+    print(f"Evaluation Acc: {avg_acc}, Evaluation Loss: {avg_loss}")
+
+
+### PTB training ###
+def epoch_general_ptb(data, model, seq_len=40, loss_fn=nn.SoftmaxLoss(), opt=None,
+                      clip=None, device=None, dtype="float32"):
+    """
+    Iterates over the data. If optimizer is not None, sets the
+    model to train mode, and for each batch updates the model parameters.
+    If optimizer is None, sets the model to eval mode, and simply computes
+    the loss/accuracy.
+
+    Args:
+        data: data of shape (nbatch, batch_size) given from batchify function
+        model: LanguageModel instance
+        seq_len: i.e. bptt, sequence length
+        loss_fn: nn.Module instance
+        opt: Optimizer instance (optional)
+        clip: max norm of gradients (optional)
+
+    Returns:
+        avg_acc: average accuracy over dataset
+        avg_loss: average loss over dataset
+    """
+    np.random.seed(4)
+    raise NotImplementedError()
+
+
+def train_ptb(model, data, seq_len=40, n_epochs=1, optimizer=ndl.optim.SGD,
+              lr=4.0, weight_decay=0.0, loss_fn=nn.SoftmaxLoss, clip=None,
+              device=None, dtype="float32"):
+    """
+    Performs {n_epochs} epochs of training.
+
+    Args:
+        model: LanguageModel instance
+        data: data of shape (nbatch, batch_size) given from batchify function
+        seq_len: i.e. bptt, sequence length
+        n_epochs: number of epochs (int)
+        optimizer: Optimizer class
+        lr: learning rate (float)
+        weight_decay: weight decay (float)
+        loss_fn: nn.Module class
+        clip: max norm of gradients (optional)
+
+    Returns:
+        avg_acc: average accuracy over dataset from last epoch of training
+        avg_loss: average loss over dataset from last epoch of training
+    """
+    np.random.seed(4)
+    raise NotImplementedError()
+
+
+def evaluate_ptb(model, data, seq_len=40, loss_fn=nn.SoftmaxLoss,
+                 device=None, dtype="float32"):
+    """
+    Computes the test accuracy and loss of the model.
+
+    Args:
+        model: LanguageModel instance
+        data: data of shape (nbatch, batch_size) given from batchify function
+        seq_len: i.e. bptt, sequence length
+        loss_fn: nn.Module class
+
+    Returns:
+        avg_acc: average accuracy over dataset
+        avg_loss: average loss over dataset
+    """
+    np.random.seed(4)
+    raise NotImplementedError()
+
 
 def loss_err(h, y):
-    """ Helper function to compute both loss and error"""
+    """Helper function to compute both loss and error"""
     y_one_hot = np.zeros((y.shape[0], h.shape[-1]))
     y_one_hot[np.arange(y.size), y] = 1
     y_ = ndl.Tensor(y_one_hot)
     return softmax_loss(h, y_).numpy(), np.mean(h.numpy().argmax(axis=1) != y)
+
+
+if __name__ == "__main__":
+    device = ndl.cpu()
+    dataset = ndl.data.CIFAR10Dataset("../data/cifar-10-batches-py", train=True)
+    dataloader = ndl.data.DataLoader( \
+        dataset=dataset,
+        batch_size=128,
+        shuffle=True, )
+    model = ResNet9(device=device, dtype="float32")
+    train_cifar10(model, dataloader, n_epochs=10, optimizer=ndl.optim.Adam,
+                  lr=0.001, weight_decay=0.001)
+    evaluate_cifar10(model, dataloader)

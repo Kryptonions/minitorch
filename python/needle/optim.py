@@ -1,6 +1,7 @@
 """Optimization module"""
 import needle as ndl
 import numpy as np
+from collections import defaultdict
 
 
 class Optimizer:
@@ -24,7 +25,6 @@ class SGD(Optimizer):
         self.weight_decay = weight_decay
 
     def step(self):
-        ### BEGIN YOUR SOLUTION
         for param in self.params:
             # print(param)
             if param.grad is None:
@@ -34,18 +34,17 @@ class SGD(Optimizer):
             grad = ndl.Tensor(grad, dtype=param.dtype)
             self.u[param] = grad
             param.data -= self.lr * grad
-            ### END YOUR SOLUTION
 
 
 class Adam(Optimizer):
     def __init__(
-            self,
-            params,
-            lr=0.01,
-            beta1=0.9,
-            beta2=0.999,
-            eps=1e-8,
-            weight_decay=0.0,
+        self,
+        params,
+        lr=0.01,
+        beta1=0.9,
+        beta2=0.999,
+        eps=1e-8,
+        weight_decay=0.0,
     ):
         super().__init__(params)
         self.lr = lr
@@ -55,21 +54,21 @@ class Adam(Optimizer):
         self.weight_decay = weight_decay
         self.t = 0
 
-        self.m = {}
-        self.v = {}
+        #self.m = {}
+        #self.v = {}
+
+        self.m = defaultdict(float)
+        self.v = defaultdict(float)
 
     def step(self):
         self.t += 1
-        for p in self.params:
-            if p.grad is None:
-                continue
-            grad = p.grad.data + self.weight_decay * p.data
-            v = self.beta1 * self.v.get(p, 0) + (1 - self.beta1) * grad
-            m = self.beta2 * self.m.get(p, 0) + (1 - self.beta2) * grad * grad
-            self.v[p] = ndl.Tensor(v, dtype=p.dtype)
-            self.m[p] = ndl.Tensor(m, dtype=p.dtype)
-            # bias correction
-            v = v / (1 - self.beta1 ** self.t)
-            m = m / (1 - self.beta2 ** self.t)
-            update = ndl.ops.divide(v, ndl.ops.power_scalar(m, 0.5) + self.eps)
-            p.data = p.data - self.lr * ndl.Tensor(update, dtype=p.dtype)
+        for w in self.params:
+            if self.weight_decay > 0:
+                grad = w.grad.data + self.weight_decay * w.data
+            else:
+                grad = w.grad.data
+            self.m[w] = self.beta1 * self.m[w] + (1 - self.beta1) * grad
+            self.v[w] = self.beta2 * self.v[w] + (1 - self.beta2) * (grad ** 2)
+            unbiased_m = self.m[w] / (1 - self.beta1 ** self.t)
+            unbiased_v = self.v[w] / (1 - self.beta2 ** self.t)
+            w.data = w.data - self.lr * unbiased_m / (unbiased_v**0.5 + self.eps)
