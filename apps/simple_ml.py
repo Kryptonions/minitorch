@@ -181,8 +181,6 @@ def epoch_general_cifar10(dataloader, model, loss_fn=nn.SoftmaxLoss(), opt=None)
             total_loss += loss.data.numpy() * y.shape[0]
             print("loss:{}".format(loss.data.numpy()))
 
-
-
     sample_nums = len(dataloader.dataset)
     return correct / sample_nums, total_loss / sample_nums
 
