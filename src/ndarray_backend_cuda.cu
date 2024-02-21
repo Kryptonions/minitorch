@@ -481,10 +481,6 @@ void EwiseTanh(const CudaArray& a, CudaArray* out) {
  * signatures above.
  */
 
-/// BEGIN YOUR SOLUTION
-
-/// END YOUR SOLUTION
-
 ////////////////////////////////////////////////////////////////////////////////
 // Elementwise and scalar operations
 ////////////////////////////////////////////////////////////////////////////////
@@ -561,10 +557,8 @@ void ReduceMax(const CudaArray& a, CudaArray* out, size_t reduce_size) {
    *   out: compact array to write into
    *   redice_size: size of the dimension to reduce over
    */
-  /// BEGIN YOUR SOLUTION
   CudaDims dim = CudaOneDim(out->size);
   ReduceMaxKernel<<<dim.grid, dim.block>>>(a.ptr, out->ptr, out->size, reduce_size);
-  /// END YOUR SOLUTION
 }
 
 
@@ -589,10 +583,8 @@ void ReduceSum(const CudaArray& a, CudaArray* out, size_t reduce_size) {
    *   out: compact array to write into
    *   redice_size: size of the dimension to reduce over
    */
-  /// BEGIN YOUR SOLUTION
   CudaDims dim = CudaOneDim(out->size);
   ReduceSumKernel<<<dim.grid, dim.block>>>(a.ptr, out->ptr, out->size, reduce_size);
-  /// END YOUR SOLUTION
 }
 
 

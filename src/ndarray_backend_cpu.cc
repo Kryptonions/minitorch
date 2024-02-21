@@ -81,14 +81,12 @@ void Compact(const AlignedArray& a, AlignedArray* out, std::vector<int32_t> shap
    *  void (you need to modify out directly, rather than returning anything; this is true for all the
    *  function will implement here, so we won't repeat this note.)
    */
-  /// BEGIN YOUR SOLUTION
   size_t m = shape.size();
   size_t n = strides.size();
   assert(m == n);
   int32_t out_idx = 0;
   std::vector<int32_t> shape_inds;
   make_compact(a, out, shape, strides, offset, shape_inds, out_idx);
-  /// END YOUR SOLUTION
 }
 
 
@@ -123,14 +121,12 @@ void EwiseSetitem(const AlignedArray& a, AlignedArray* out, std::vector<int32_t>
    *   strides: strides of the *out* array (not a, which has compact strides)
    *   offset: offset of the *out* array (not a, which has zero offset, being compact)
    */
-  /// BEGIN YOUR SOLUTION
   size_t m = shape.size();
   size_t n = strides.size();
   assert(m == n);
   int32_t a_idx = 0;
   std::vector<int32_t> shape_inds;
   ewise_set_item(a, out, shape, strides, offset, shape_inds, a_idx);
-  /// END YOUR SOLUTION
 }
 
 void scalar_set_item(const size_t size, scalar_t val, AlignedArray* out, std::vector<int32_t> shape,
@@ -315,9 +311,6 @@ void EwiseTanh(const AlignedArray& a, AlignedArray* out) {
  * signatures above.
  */
 
-/// BEGIN YOUR SOLUTION
-
-/// END YOUR SOLUTION
 
 void Matmul(const AlignedArray& a, const AlignedArray& b, AlignedArray* out, int32_t m, int32_t n,
             int32_t p) {
@@ -334,7 +327,6 @@ void Matmul(const AlignedArray& a, const AlignedArray& b, AlignedArray* out, int
    *   p: columns of b / out
    */
 
-  /// BEGIN YOUR SOLUTION
   for (int32_t i = 0; i < m; i++) {
     for (int32_t j = 0; j < p; j++) {
         scalar_t s = 0;
@@ -344,7 +336,6 @@ void Matmul(const AlignedArray& a, const AlignedArray& b, AlignedArray* out, int
         out->ptr[i * p + j] = s;
     }
   }
-  /// END YOUR SOLUTION
 }
 
 inline void AlignedDot(const float* __restrict__ a,
@@ -372,7 +363,6 @@ inline void AlignedDot(const float* __restrict__ a,
   b = (const float*)__builtin_assume_aligned(b, TILE * ELEM_SIZE);
   out = (float*)__builtin_assume_aligned(out, TILE * ELEM_SIZE);
 
-  /// BEGIN YOUR SOLUTION
   for (int i = 0; i < TILE; i++) {
     for (int j = 0; j < TILE; j++) {
       int r = i * TILE + j;
@@ -383,7 +373,6 @@ inline void AlignedDot(const float* __restrict__ a,
       }
     }
   }
-  /// END YOUR SOLUTION
 }
 
 void MatmulTiled(const AlignedArray& a, const AlignedArray& b, AlignedArray* out, int32_t m,
@@ -407,7 +396,6 @@ void MatmulTiled(const AlignedArray& a, const AlignedArray& b, AlignedArray* out
    *   p: columns of b / out
    *
    */
-  /// BEGIN YOUR SOLUTION
   size_t m1 = m / TILE;
   size_t n1 = n / TILE;
   size_t p1 = p / TILE;
@@ -438,7 +426,6 @@ void MatmulTiled(const AlignedArray& a, const AlignedArray& b, AlignedArray* out
       }
     }
   }
-  /// END YOUR SOLUTION
 }
 
 void ReduceMax(const AlignedArray& a, AlignedArray* out, size_t reduce_size) {
@@ -451,7 +438,6 @@ void ReduceMax(const AlignedArray& a, AlignedArray* out, size_t reduce_size) {
    *   reduce_size: size of the dimension to reduce over
    */
 
-  /// BEGIN YOUR SOLUTION
   scalar_t s = -std::numeric_limits<float>::infinity();
   int32_t c = 0;
   for (size_t i = 0; i < a.size; i++) {
@@ -461,7 +447,6 @@ void ReduceMax(const AlignedArray& a, AlignedArray* out, size_t reduce_size) {
         out->ptr[c / reduce_size - 1] = s;
         s = -std::numeric_limits<float>::infinity();
   }
-  /// END YOUR SOLUTION
 }
 }
 
@@ -475,7 +460,6 @@ void ReduceSum(const AlignedArray& a, AlignedArray* out, size_t reduce_size) {
    *   reduce_size: size of the dimension to reduce over
    */
 
-  /// BEGIN YOUR SOLUTION
   scalar_t s = 0;
   int32_t c = 0;
   for (size_t i = 0; i < a.size; i++) {
@@ -485,7 +469,6 @@ void ReduceSum(const AlignedArray& a, AlignedArray* out, size_t reduce_size) {
         out->ptr[c / reduce_size - 1] = s;
         s = 0;
   }
-  /// END YOUR SOLUTION
 }
 }
 
